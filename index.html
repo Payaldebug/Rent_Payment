@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral-Powered Voting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+        }
+        .input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .button {
+            background: blue;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .button:hover {
+            background: darkblue;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h2>Referral-Powered Voting</h2>
+        <p>Total Votes: <span id="totalVotes">0</span></p>
+        <p>Voter Count: <span id="voterCount">0</span></p>
+        <input type="text" id="referrer" class="input" placeholder="Enter Referrer Address (optional)">
+        <button class="button" onclick="vote()">Vote</button>
+    </div>
+    
+    <script>
+        const contractAddress = "0xcbc0b22ca0c4f986195881103f34482915e69ef9";
+        const contractABI = [
+    { "inputs": [{ "internalType": "address", "name": "referrer", "type": "address" }], "name": "vote", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+    { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "voter", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "power", "type": "uint256" }], "name": "Voted", "type": "event" },
+    { "inputs": [], "name": "getTotalVotes", "outputs": [{ "internalType": "uint256", "name": "total", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [], "name": "getVoterCount", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "hasVoted", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "referrals", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "voters", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "votes", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
+];
+        let provider, contract;
+        async function init() {
+    if (window.ethereum) {
+        try {
+            await window.ethereum.request({ method: "eth_requestAccounts" }); // Forces connection
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            contract = new ethers.Contract(contractAddress, contractABI, signer);
+            fetchVotes();
+        } catch (error) {
+            console.error("User denied wallet connection", error);
+        }
+    } else {
+        alert("Please install MetaMask to use this feature");
+    }
+}
+
+        
+        async function fetchVotes() {
+            const totalVotes = await contract.getTotalVotes();
+            const voterCount = await contract.getVoterCount();
+            document.getElementById("totalVotes").innerText = totalVotes.toString();
+            document.getElementById("voterCount").innerText = voterCount.toString();
+        }
+        
+        async function vote() {
+    if (!contract) return alert("Connect to MetaMask");
+    const accounts = await provider.listAccounts();
+    console.log("Connected accounts:", accounts);
+    if (accounts.length === 0) return alert("Please connect to MetaMask");
+
+    const referrer = document.getElementById("referrer").value || ethers.constants.AddressZero;
+    try {
+        const tx = await contract.vote(referrer);
+        await tx.wait();
+        fetchVotes();
+    } catch (error) {
+        console.error("Voting failed", error);
+        alert("Voting failed. See console for details.");
+    }
+}
+
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
